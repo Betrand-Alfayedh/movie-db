@@ -92,10 +92,10 @@
             @endauth
           </ul>
 
-          <form class="d-flex ms-3" role="search" action="/search" method="GET">
-            <input class="form-control me-2" name="q" type="search" placeholder="Search movies..." aria-label="Search" />
-            <button class="btn btn-light" type="submit">Search</button>
-          </form>
+          <form class="d-flex" role="search" action="{{ url('/') }}" method="GET">
+  <input class="form-control me-2" type="search" name="search" placeholder="Search movies..." aria-label="Search" />
+  <button class="btn btn-light" type="submit">😺Search</button>
+</form>
         </div>
       </div>
     </nav>

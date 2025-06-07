@@ -7,48 +7,45 @@ use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 
 class MovieController extends Controller
 {
   public function index(Request $request)
   {
-    // Ambil query parameter genre (category_name)
     $genre = $request->query('genre');
+    $search = $request->query('search');
 
+    $query = Movie::query();
+
+    // Jika filter genre diaktifkan
     if ($genre) {
-      // Cari category berdasarkan category_name
       $category = Category::where('category_name', $genre)->first();
-
       if ($category) {
-        // Ambil movie yang punya category_id sesuai category ini, paginate
-        $movies = Movie::where('category_id', $category->id)
-          ->orderBy('created_at', 'desc')  // Urutkan terbaru dulu
-          ->paginate(6)
-          ->appends(['genre' => $genre]); // <-- Ini yang penting
-
-        // Kirim category_name juga supaya bisa ditampilkan di view
-        return view('homepage', [
-          'movies' => $movies,
-          'category_name' => $category->category_name,
-        ]);
-      } else {
-        // Kalau genre gak ditemukan, tampilkan kosong atau semua movie (pilih salah satu)
-        $movies = Movie::orderBy('created_at', 'desc')->paginate(6);
-        return view('homepage', [
-          'movies' => $movies,
-          'category_name' => null,
-        ]);
+        $query->where('category_id', $category->id);
       }
-    } else {
-      // Kalau gak ada filter genre, tampilkan semua movie
-      $movies = Movie::orderBy('created_at', 'desc')->paginate(6);
-      return view('homepage', [
-        'movies' => $movies,
-        'category_name' => null,
-      ]);
     }
+
+    // Jika pencarian diaktifkan
+    if ($search) {
+      $query->where('title', 'like', '%' . $search . '%');
+    }
+
+    // Ambil hasil movie
+    $movies = $query->orderBy('created_at', 'desc')->paginate(6);
+
+    // Append query agar tetap ada saat paginatio
+    $movies->appends([
+      'genre' => $genre,
+      'search' => $search,
+    ]);
+
+    return view('homepage', [
+      'movies' => $movies,
+      'category_name' => $genre,
+      'search' => $search,
+    ]);
   }
+
 
 
   public function detail_movie($id, $slug)
@@ -107,7 +104,6 @@ class MovieController extends Controller
   public function destroy($id)
   {
     if (Gate::allows('delete-movie')) {
-
       $movie = Movie::findOrFail($id);
 
       // Hapus cover image jika ada
@@ -119,7 +115,7 @@ class MovieController extends Controller
 
       return redirect()->route('dataMovie')->with('success', 'Data movie berhasil dihapus.');
     }
-    abort(403);
+    abort(403, 'Anda tidak memiliki akses untuk mengahapus data ini');
   }
 
   public function update(Request $request, $id)
